@@ -13,14 +13,8 @@ RegisterNetEvent('fd_laptop:server:openLaptopStorage', function(slot)
 
     local item = tgiann_inventory:GetItemBySlot(src, slot)
     if not item then return end
-    if not item.metadata?.id then
-        item.metadata.id = utils.uuid()
-        tgiann_inventory:SetItemData(src, item, slot, item.metadata)
-    end
-
-    if not registeredStashes[item.metadata.id] then
-        registeredStashes[id] = true
-    end
+    if not item.info?.id then return false end
+    if not registeredStashes[item.metadata.id] then return false end
 
     tgiann_inventory:OpenInventory(src, "stash", ('fd_laptop_%s'):format(item.metadata.id), {
         maxweight = itemConfig.weight,
@@ -37,37 +31,45 @@ local function getStashItemsFromDB(inventoryId)
     end
 end
 
-exports('useLaptop', function(event, _, inventory, slot, _)
-    if event == 'usingItem' then
-        CreateThread(function()
-            local item = tgiann_inventory:GetItemBySlot(inventory.id, slot)
-            if not item then return false end
-            if not item.metadata?.id then 
-                item.metadata.id = utils.uuid()
-                tgiann_inventory:SetItemData(src, item, slot, item.metadata)
-            end
+RegisterServerEvent('fd_laptop:clientUseLaptop')
+AddEventHandler('fd_laptop:clientUseLaptop', function(data)
+    local src = source
+    exports['fd_laptop']:useLaptop(src)
+end)
 
-            if not registeredStashes[item.metadata.id] then
-                tgiann_inventory:CreateCustomStashWithItem(('fd_laptop_%s'):format(item.metadata.id), {})
-                registeredStashes[item.metadata.id] = true
-            end
-
-            local items getStashItemsFromDB(('fd_laptop_%s'):format(item.metadata.id))
-
-            local devices = {}
-
-            for _, item in pairs(items) do
-                if item.metadata?.deviceId then
-                    devices[#devices + 1] = {
-                        slot = item.slot,
-                        metadata = item.metadata
-                    }
-                end
-            end
-
-            TriggerEvent('fd_laptop:server:useLaptop', inventory.id, item.metadata?.id, devices)
-        end)
-
-        return false
+exports('useLaptop', function(src)
+    local item = tgiann_inventory:GetItemByName(src, "laptop")
+    if not item then 
+        return false 
     end
+    if not item.info?.id then
+        local newMetadata = {
+            id = utils.uuid()
+        }
+        tgiann_inventory:UpdateItemMetadata(src, "laptop", item.slot, newMetadata)
+        item = tgiann_inventory:GetItemByName(src, "laptop")
+    end
+
+    if not registeredStashes[item.info.id] then
+        tgiann_inventory:CreateCustomStashWithItem(('fd_laptop_%s'):format(item.info.id), {})
+        registeredStashes[item.info.id] = true
+    end
+
+    local items getStashItemsFromDB(('fd_laptop_%s'):format(item.info.id))
+
+    local devices = {}
+
+    if items then
+        for _, item in pairs(items) do
+            if item.info?.deviceId then
+                devices[#devices + 1] = {
+                    slot = item.slot,
+                    metadata = item.info
+                }
+            end
+        end
+    end
+
+    TriggerEvent('fd_laptop:server:useLaptop', src, item.info?.id, devices)
+    return
 end)

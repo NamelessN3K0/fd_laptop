@@ -1,9 +1,8 @@
 local inventory = {}
 
 function inventory.hasItem(itemName, metadata)
-    local count = exports.ox_inventory:Search('count', itemName, metadata)
-
-    return count > 0
+    local hasItem = exports["tgiann-inventory"]:HasItem(itemName, 1)
+    return hasItem
 end
 
 return inventory

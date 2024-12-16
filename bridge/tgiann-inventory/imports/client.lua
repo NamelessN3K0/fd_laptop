@@ -1,0 +1,6 @@
+RegisterNetEvent('fd_laptop:useLaptopEvent')
+AddEventHandler('fd_laptop:useLaptopEvent', function(itemData)
+    local playerId = PlayerId()
+    local serverId = GetPlayerServerId(playerId)
+    TriggerServerEvent('fd_laptop:clientUseLaptop', serverId)
+end)
